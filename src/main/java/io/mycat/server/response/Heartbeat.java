@@ -23,6 +23,8 @@
  */
 package io.mycat.server.response;
 
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.ErrorPacket;
@@ -31,14 +33,12 @@ import io.mycat.net.mysql.OkPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.TimeUtil;
 
-import org.apache.log4j.Logger;
-
 /**
  * @author mycat
  */
 public class Heartbeat {
 
-    private static final Logger HEARTBEAT = Logger.getLogger("heartbeat");
+    private static final Logger HEARTBEAT = LoggerFactory.getLogger("heartbeat");
 
     public static void response(ServerConnection c, byte[] data) {
         HeartbeatPacket hp = new HeartbeatPacket();

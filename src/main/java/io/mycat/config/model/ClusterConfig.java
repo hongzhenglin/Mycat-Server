@@ -23,10 +23,6 @@
  */
 package io.mycat.config.model;
 
-import io.mycat.config.util.ConfigException;
-import io.mycat.config.util.ConfigUtil;
-import io.mycat.util.SplitUtil;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,6 +35,10 @@ import java.util.Set;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import io.mycat.config.util.ConfigException;
+import io.mycat.config.util.ConfigUtil;
+import io.mycat.util.SplitUtil;
 
 /**
  * @author mycat
@@ -86,7 +86,7 @@ public class ClusterConfig {
                 if (null == wei || "".equals(wei)) {
                     throw new ConfigException("weight should not be null in host:" + host);
                 }
-                int weight = Integer.valueOf(wei);
+                int weight = Integer.parseInt(wei);
                 if (weight <= 0) {
                     throw new ConfigException("weight should be > 0 in host:" + host + " weight:" + weight);
                 }

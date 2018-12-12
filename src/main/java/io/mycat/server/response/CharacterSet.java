@@ -26,13 +26,15 @@ package io.mycat.server.response;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
 import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParseSet;
+import io.mycat.util.SetIgnoreUtil;
 import io.mycat.util.SplitUtil;
-
-import org.apache.log4j.Logger;
 
 /**
  * 字符集属性设置
@@ -42,7 +44,7 @@ import org.apache.log4j.Logger;
  */
 public class CharacterSet {
 
-    private static final Logger logger = Logger.getLogger(CharacterSet.class);
+    private static final Logger logger = LoggerFactory.getLogger(CharacterSet.class);
 
     public static void response(String stmt, ServerConnection c, int rs) {
         if (-1 == stmt.indexOf(',')) {
@@ -108,8 +110,11 @@ public class CharacterSet {
             case CHARACTER_SET_CLIENT:
                 break;
             default:
-                StringBuilder s = new StringBuilder();
-                logger.warn(s.append(c).append(sql).append(" is not executed").toString());
+            	boolean ignore = SetIgnoreUtil.isIgnoreStmt( sql );
+            	if ( !ignore ) {
+	                StringBuilder s = new StringBuilder();
+	                logger.warn(s.append(c).append(sql).append(" is not executed").toString());
+            	}
             }
         }
 

@@ -23,17 +23,18 @@
  */
 package io.mycat.config.loader;
 
+import java.util.Map;
+
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.rule.TableRuleConfig;
 
-import java.util.Map;
-
 /**
  * @author mycat
  */
 public interface SchemaLoader {
+	
     Map<String, TableRuleConfig> getTableRules();
 
     Map<String, DataHostConfig> getDataHosts();

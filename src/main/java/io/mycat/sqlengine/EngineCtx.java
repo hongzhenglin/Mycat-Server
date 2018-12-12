@@ -1,6 +1,14 @@
 package io.mycat.sqlengine;
 
-import io.mycat.handler.ConfFileHandler;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.manager.handler.ConfFileHandler;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.EmptyPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
@@ -8,16 +16,8 @@ import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
-
 public class EngineCtx {
-	public static final Logger LOGGER = Logger.getLogger(ConfFileHandler.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
 	private final BatchSQLJob bachJob;
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
@@ -26,6 +26,7 @@ public class EngineCtx {
 	private AllJobFinishedListener allJobFinishedListener;
 	private AtomicBoolean headerWrited = new AtomicBoolean();
 	private final ReentrantLock writeLock = new ReentrantLock();
+	private volatile boolean hasError = false;
 
 	public EngineCtx(NonBlockingSession session) {
 		this.bachJob = new BatchSQLJob();
@@ -169,10 +170,24 @@ public class EngineCtx {
 
 		boolean allFinished = bachJob.jobFinished(sqlJob);
 		if (allFinished && finished.compareAndSet(false, true)) {
-			LOGGER.info("all job finished  for front connection: "
-					+ session.getSource());
-			allJobFinishedListener.onAllJobFinished(this);
+			if(!hasError){
+				LOGGER.info("all job finished  for front connection: "
+						+ session.getSource());
+				allJobFinishedListener.onAllJobFinished(this);
+			}else{
+				LOGGER.info("all job finished with error for front connection: "
+						+ session.getSource());
+			}
 		}
 
 	}
+
+	public boolean isHasError() {
+		return hasError;
+	}
+
+	public void setHasError(boolean hasError) {
+		this.hasError = hasError;
+	}
+
 }

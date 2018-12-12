@@ -23,8 +23,8 @@
  */
 package io.mycat.net.handler;
 
+import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.config.ErrorCode;
-import io.mycat.mysql.MySQLMessage;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.NIOHandler;
 import io.mycat.net.mysql.MySQLPacket;
@@ -86,6 +86,14 @@ public class FrontendCommandHandler implements NIOHandler
                 commands.doStmtPrepare();
                 source.stmtPrepare(data);
                 break;
+            case MySQLPacket.COM_STMT_SEND_LONG_DATA:
+            	commands.doStmtSendLongData();
+            	source.stmtSendLongData(data);
+            	break;
+            case MySQLPacket.COM_STMT_RESET:
+            	commands.doStmtReset();
+            	source.stmtReset(data);
+            	break;
             case MySQLPacket.COM_STMT_EXECUTE:
                 commands.doStmtExecute();
                 source.stmtExecute(data);

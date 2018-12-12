@@ -23,11 +23,11 @@
  */
 package io.mycat.net;
 
-import io.mycat.backend.BackendConnection;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.NetworkChannel;
+
+import io.mycat.backend.BackendConnection;
 
 /**
  * @author mycat
@@ -60,7 +60,9 @@ public abstract class BackendAIOConnection extends AbstractConnection implements
 	
 
 	
-
+	public void discardClose(String reason){
+		//跨节点处理,中断后端连接时关闭
+	}
 	public abstract void onConnectFailed(Throwable e);
 
 	public boolean finishConnect() throws IOException {
@@ -79,6 +81,4 @@ public abstract class BackendAIOConnection extends AbstractConnection implements
 		return "BackendConnection [id=" + id + ", host=" + host + ", port="
 				+ port + ", localPort=" + localPort + "]";
 	}
-
-	
 }

@@ -23,8 +23,6 @@
  */
 package io.mycat.cache;
 
-import io.mycat.cache.CacheStatic;
-import io.mycat.cache.impl.EnchachePool;
 import junit.framework.Assert;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
@@ -32,6 +30,9 @@ import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.config.MemoryUnit;
 
 import org.junit.Test;
+
+import io.mycat.cache.CacheStatic;
+import io.mycat.cache.impl.EnchachePool;
 
 public class EnCachePoolTest {
 

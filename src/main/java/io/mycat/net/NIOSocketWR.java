@@ -1,13 +1,13 @@
 package io.mycat.net;
 
-import io.mycat.util.TimeUtil;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.mycat.util.TimeUtil;
 
 public class NIOSocketWR extends SocketWR {
 	private SelectionKey processKey;
@@ -94,16 +94,22 @@ public class NIOSocketWR extends SocketWR {
 			}
 
 			buffer.flip();
-			while (buffer.hasRemaining()) {
-				written = channel.write(buffer);
-				if (written > 0) {
-					con.lastWriteTime = TimeUtil.currentTimeMillis();
-					con.netOutBytes += written;
-					con.processor.addNetOutBytes(written);
-					con.lastWriteTime = TimeUtil.currentTimeMillis();
-				} else {
-					break;
+			try {
+				while (buffer.hasRemaining()) {
+					written = channel.write(buffer);// java.io.IOException:
+									// Connection reset by peer
+					if (written > 0) {
+						con.lastWriteTime = TimeUtil.currentTimeMillis();
+						con.netOutBytes += written;
+						con.processor.addNetOutBytes(written);
+						con.lastWriteTime = TimeUtil.currentTimeMillis();
+					} else {
+						break;
+					}
 				}
+			} catch (IOException e) {
+				con.recycle(buffer);
+				throw e;
 			}
 			if (buffer.hasRemaining()) {
 				con.writeBuffer = buffer;
@@ -179,12 +185,15 @@ public class NIOSocketWR extends SocketWR {
 	public void asynRead() throws IOException {
 		ByteBuffer theBuffer = con.readBuffer;
 		if (theBuffer == null) {
-			theBuffer = con.processor.getBufferPool().allocate();
+
+			theBuffer = con.processor.getBufferPool().allocate(con.processor.getBufferPool().getChunkSize());
+
 			con.readBuffer = theBuffer;
 		}
-		int got = channel.read(theBuffer);
-		con.onReadData(got);
 
+		int got = channel.read(theBuffer);
+
+		con.onReadData(got);
 	}
 
 }

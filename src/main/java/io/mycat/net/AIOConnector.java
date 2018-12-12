@@ -23,18 +23,19 @@
  */
 package io.mycat.net;
 
-import io.mycat.MycatServer;
-
 import java.nio.channels.CompletionHandler;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.MycatServer;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
  */
 public final class AIOConnector implements SocketConnector,
 		CompletionHandler<Void, BackendAIOConnection> {
-	private static final Logger LOGGER = Logger.getLogger(AIOConnector.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AIOConnector.class);
 	private static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
 
 	public AIOConnector() {
@@ -62,7 +63,7 @@ public final class AIOConnector implements SocketConnector,
 			}
 		} catch (Exception e) {
 			c.onConnectFailed(e);
-			LOGGER.info("connect err " + e);
+			LOGGER.info("connect err " , e);
 			c.close(e.toString());
 		}
 	}
@@ -76,17 +77,10 @@ public final class AIOConnector implements SocketConnector,
 
 		private static final long MAX_VALUE = Long.MAX_VALUE;
 
-		private long connectId = 0L;
-		private final Object lock = new Object();
+		private AtomicLong connectId = new AtomicLong(0);
 
 		private long getId() {
-			synchronized (lock) {
-				if (connectId >= MAX_VALUE) {
-					connectId = 0L;
-				}
-				return ++connectId;
-			}
+			return connectId.incrementAndGet();
 		}
 	}
-
 }

@@ -23,14 +23,14 @@
  */
 package io.mycat.cache;
 
-/**
- * test cache performance ,for encache test set  VM param  -server -Xms1100M -Xmx1100M
- * for mapdb set vm param -server -Xms100M -Xmx100M -XX:MaxPermSize=1G
- */
 import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheStatic;
 import io.mycat.cache.impl.EnchachePool;
 import io.mycat.cache.impl.MapDBCachePooFactory;
+/**
+ * test cache performance ,for encache test set  VM param  -server -Xms1100M -Xmx1100M
+ * for mapdb set vm param -server -Xms100M -Xmx100M -XX:MaxPermSize=1G
+ */
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;

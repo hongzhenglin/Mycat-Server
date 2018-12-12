@@ -23,8 +23,6 @@
  */
 package io.mycat.config.util;
 
-import io.mycat.util.StringUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -46,6 +44,8 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
+
+import io.mycat.util.StringUtil;
 
 /**
  * @author mycat
@@ -140,6 +140,11 @@ public class ConfigUtil {
         }
     }
 
+    /**
+     * 获取节点下所有property
+     * @param parent
+     * @return key-value property键值对
+     */
     public static Map<String, Object> loadElements(Element parent) {
         Map<String, Object> map = new HashMap<String, Object>();
         NodeList children = parent.getChildNodes();
@@ -148,6 +153,7 @@ public class ConfigUtil {
             if (node instanceof Element) {
                 Element e = (Element) node;
                 String name = e.getNodeName();
+                //获取property
                 if ("property".equals(name)) {
                     String key = e.getAttribute("name");
                     NodeList nl = e.getElementsByTagName("bean");

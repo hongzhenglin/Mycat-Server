@@ -23,11 +23,12 @@
  */
 package io.mycat.net.mysql;
 
-import io.mycat.mysql.BufferUtil;
-import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
-
 import java.nio.ByteBuffer;
+
+import io.mycat.MycatServer;
+import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.MySQLMessage;
+import io.mycat.net.FrontendConnection;
 
 /**
  * From server to client in response to command, if no error and no result set.
@@ -138,5 +139,26 @@ public class OkPacket extends MySQLPacket {
 	protected String getPacketInfo() {
 		return "MySQL OK Packet";
 	}
+
+	 public byte[] writeToBytes() {
+	
+	   int totalSize = calcPacketSize() + packetHeaderSize;
+        ByteBuffer buffer=MycatServer.getInstance().getBufferPool().allocate(totalSize);
+        BufferUtil.writeUB3(buffer, calcPacketSize());
+        buffer.put(packetId);
+        buffer.put(fieldCount);
+        BufferUtil.writeLength(buffer, affectedRows);
+        BufferUtil.writeLength(buffer, insertId);
+        BufferUtil.writeUB2(buffer, serverStatus);
+        BufferUtil.writeUB2(buffer, warningCount);
+        if (message != null) {
+            BufferUtil.writeWithLength(buffer, message);
+        }
+        buffer.flip();
+        byte[] data = new byte[buffer.limit()];
+        buffer.get(data);
+		 MycatServer.getInstance().getBufferPool().recycle(buffer);
+		 return data;
+    }
 
 }

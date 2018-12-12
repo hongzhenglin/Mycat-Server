@@ -58,5 +58,37 @@ public interface FrontendPrivileges {
      * @return
      */
     Boolean isReadOnly(String user);
+    
+    /**
+     * 获取设定的系统最大连接数的降级阀值
+     * @param user
+     * @return
+     */
+    int getBenchmark(String user);
+    
+    
+    /**
+     * 检查防火墙策略
+     * （白名单策略）
+     * @param user
+     * @param host
+     * @return
+     */
+    boolean checkFirewallWhiteHostPolicy(String user, String host);
+    
+    /**
+     * 检查防火墙策略
+     * (SQL黑名单及注入策略)
+     * @param sql
+     * @return
+     */
+    boolean checkFirewallSQLPolicy(String user, String sql);
+    
+    
+    /**
+     * 检查 SQL 语句的 DML 权限
+     * @return
+     */
+    boolean checkDmlPrivilege(String user, String schema, String sql);   
 
 }

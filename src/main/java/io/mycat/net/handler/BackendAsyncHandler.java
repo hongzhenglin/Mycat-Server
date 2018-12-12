@@ -23,16 +23,16 @@
  */
 package io.mycat.net.handler;
 
-import io.mycat.net.NIOHandler;
-
 import java.util.concurrent.Executor;
+
+import io.mycat.net.NIOHandler;
 
 /**
  * @author mycat
  */
 public abstract class BackendAsyncHandler implements NIOHandler {
 
-protected void offerData(byte[] data, Executor executor) {
+	protected void offerData(byte[] data, Executor executor) {
 		handleData(data);
 
 		// if (dataQueue.offer(data)) {

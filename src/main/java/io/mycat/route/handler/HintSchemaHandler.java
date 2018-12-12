@@ -1,5 +1,10 @@
 package io.mycat.route.handler;
 
+import java.sql.SQLNonTransientException;
+import java.util.Map;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
@@ -9,17 +14,12 @@ import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 
-import java.sql.SQLNonTransientException;
-
-import org.apache.log4j.Logger;
-
 /**
  * 处理注释中类型为schema 的情况（按照指定schema做路由解析）
  */
 public class HintSchemaHandler implements HintHandler {
 
-	private static final Logger LOGGER = Logger
-			.getLogger(HintSchemaHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(HintSchemaHandler.class);
 
 	private RouteStrategy routeStrategy;
     
@@ -44,15 +44,13 @@ public class HintSchemaHandler implements HintHandler {
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
 			int sqlType, String realSQL, String charset, ServerConnection sc,
-			LayerCachePool cachePool, String hintSQLValue)
+			LayerCachePool cachePool, String hintSQLValue,int hintSqlType, Map hintMap)
 			throws SQLNonTransientException {
-	    SchemaConfig tempSchema = MycatServer.getInstance().getConfig().getSchemas()
-				.get(hintSQLValue);
+	    SchemaConfig tempSchema = MycatServer.getInstance().getConfig().getSchemas().get(hintSQLValue);
 		if (tempSchema != null) {
-			return routeStrategy.route(sysConfig, tempSchema,
-					sqlType, realSQL, charset, sc, cachePool);
+			return routeStrategy.route(sysConfig, tempSchema, sqlType, realSQL, charset, sc, cachePool);
 		} else {
-			String msg = "can't find schema:" + tempSchema.getName();
+			String msg = "can't find hint schema:" + hintSQLValue;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}

@@ -23,21 +23,26 @@
  */
 package io.mycat.net.handler;
 
+import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.SecurityUtil;
 import io.mycat.config.Capabilities;
 import io.mycat.config.ErrorCode;
-import io.mycat.mysql.SecurityUtil;
+import io.mycat.config.model.UserConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.NIOHandler;
+import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.AuthPacket;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.QuitPacket;
-
-import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
 
 /**
  * 前端认证处理器
@@ -45,9 +50,10 @@ import org.apache.log4j.Logger;
  * @author mycat
  */
 public class FrontendAuthenticator implements NIOHandler {
-    private static final Logger LOGGER = Logger.getLogger(FrontendAuthenticator.class);
+	
+    private static final Logger LOGGER = LoggerFactory.getLogger(FrontendAuthenticator.class);
     private static final byte[] AUTH_OK = new byte[] { 7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0 };
-
+    
     protected final FrontendConnection source;
 
     public FrontendAuthenticator(FrontendConnection source) {
@@ -65,18 +71,35 @@ public class FrontendAuthenticator implements NIOHandler {
         AuthPacket auth = new AuthPacket();
         auth.read(data);
 
+        //huangyiming add
+        int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
+        //如果无密码登陆则跳过密码验证这个步骤
+        boolean skipPassWord = false;
+        String defaultUser = "";
+        if(nopassWordLogin == 1){
+        	skipPassWord = true;
+        	Map<String, UserConfig> userMaps =  MycatServer.getInstance().getConfig().getUsers();
+        	if(!userMaps.isEmpty()){
+        		setDefaultAccount(auth, userMaps);
+        	}
+        }
         // check user
         if (!checkUser(auth.user, source.getHost())) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "'");
-            return;
+        	failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost()+ "'");
+        	return;
         }
-
         // check password
-        if (!checkPassword(auth.password, auth.user)) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "'");
-            return;
+        if (!skipPassWord && !checkPassword(auth.password, auth.user)) {
+        	failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because password is error ");
+        	return;
         }
-
+        
+        // check degrade
+        if ( isDegrade( auth.user ) ) {
+        	 failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because service be degraded ");
+             return;
+        }
+        
         // check schema
         switch (checkSchema(auth.database, auth.user)) {
         case ErrorCode.ER_BAD_DB_ERROR:
@@ -91,6 +114,44 @@ public class FrontendAuthenticator implements NIOHandler {
         }
     }
 
+    /**
+     * 设置了无密码登陆的情况下把客户端传过来的用户账号改变为默认账户
+     * @param auth
+     * @param userMaps
+     */
+	private void setDefaultAccount(AuthPacket auth, Map<String, UserConfig> userMaps) {
+		String defaultUser;
+		Iterator<UserConfig> items = userMaps.values().iterator();
+		while(items.hasNext()){
+			UserConfig userConfig = items.next();
+			if(userConfig.isDefaultAccount()){
+				defaultUser = userConfig.getName(); 
+				auth.user = defaultUser;
+			}
+		}
+	}
+    
+    //TODO: add by zhuam
+    //前端 connection 达到该用户设定的阀值后, 立马降级拒绝连接
+    protected boolean isDegrade(String user) {
+    	
+    	int benchmark = source.getPrivileges().getBenchmark(user);
+    	if ( benchmark > 0 ) {
+    	
+	    	int forntedsLength = 0;
+	    	NIOProcessor[] processors = MycatServer.getInstance().getProcessors();
+			for (NIOProcessor p : processors) {
+				forntedsLength += p.getForntedsLength();
+			}
+		
+			if ( forntedsLength >= benchmark ) {							
+				return true;
+			}			
+    	}
+		
+		return false;
+    }
+    
     protected boolean checkUser(String user, String host) {
         return source.getPrivileges().userExists(user, host);
     }

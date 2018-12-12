@@ -23,13 +23,13 @@
  */
 package io.mycat.manager;
 
-import io.mycat.MycatPrivileges;
-import io.mycat.MycatServer;
-import io.mycat.net.FrontendConnection;
-import io.mycat.net.factory.FrontendConnectionFactory;
-
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+
+import io.mycat.MycatServer;
+import io.mycat.config.MycatPrivileges;
+import io.mycat.net.FrontendConnection;
+import io.mycat.net.factory.FrontendConnectionFactory;
 
 /**
  * @author mycat

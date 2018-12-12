@@ -23,12 +23,12 @@
  */
 package io.mycat.net.mysql;
 
-import io.mycat.mysql.BufferUtil;
-import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
-
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.MySQLMessage;
+import io.mycat.net.FrontendConnection;
 
 /**
  * From server to client in response to command, if error.

@@ -24,7 +24,7 @@
 package io.mycat.server.response;
 
 import io.mycat.MycatServer;
-import io.mycat.mysql.PacketUtil;
+import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.OkPacket;

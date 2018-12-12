@@ -23,11 +23,11 @@
  */
 package io.mycat.net.mysql;
 
-import io.mycat.mysql.BufferUtil;
-import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.BackendAIOConnection;
-
 import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.MySQLMessage;
+import io.mycat.net.BackendAIOConnection;
 
 /**
  * From client to server when the client do heartbeat between mycat cluster.

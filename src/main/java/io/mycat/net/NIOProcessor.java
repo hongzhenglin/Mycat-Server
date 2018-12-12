@@ -23,26 +23,32 @@
  */
 package io.mycat.net;
 
-import io.mycat.MycatServer;
-import io.mycat.backend.BackendConnection;
-import io.mycat.buffer.BufferPool;
-import io.mycat.statistic.CommandCount;
-import io.mycat.util.NameableExecutor;
-import io.mycat.util.TimeUtil;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.log4j.Logger;
+import io.mycat.buffer.BufferPool;
+
+import org.slf4j.Logger; 
+import org.slf4j.LoggerFactory;
+
+import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
+import io.mycat.statistic.CommandCount;
+import io.mycat.util.NameableExecutor;
+import io.mycat.util.TimeUtil;
 
 /**
  * @author mycat
  */
 public final class NIOProcessor {
-	private static final Logger LOGGER = Logger.getLogger("NIOProcessor");
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger("NIOProcessor");
+	
 	private final String name;
 	private final BufferPool bufferPool;
 	private final NameableExecutor executor;
@@ -51,6 +57,13 @@ public final class NIOProcessor {
 	private final CommandCount commands;
 	private long netInBytes;
 	private long netOutBytes;
+	
+	// TODO: add by zhuam
+	// reload @@config_all 后, 老的backends  全部移往 backends_old, 待检测任务进行销毁
+	public final static ConcurrentLinkedQueue<BackendConnection> backends_old = new ConcurrentLinkedQueue<BackendConnection>();
+
+	//前端已连接数
+	private AtomicInteger frontendsLength = new AtomicInteger(0);
 
 	public NIOProcessor(String name, BufferPool bufferPool,
 			NameableExecutor executor) throws IOException {
@@ -85,43 +98,48 @@ public final class NIOProcessor {
 	}
 
 	public NameableExecutor getExecutor() {
-		return executor;
+		return this.executor;
 	}
 
 	public CommandCount getCommands() {
-		return commands;
+		return this.commands;
 	}
 
 	public long getNetInBytes() {
-		return netInBytes;
+		return this.netInBytes;
 	}
 
 	public void addNetInBytes(long bytes) {
-		netInBytes += bytes;
+		this.netInBytes += bytes;
 	}
 
 	public long getNetOutBytes() {
-		return netOutBytes;
+		return this.netOutBytes;
 	}
 
 	public void addNetOutBytes(long bytes) {
-		netOutBytes += bytes;
+		this.netOutBytes += bytes;
 	}
 
 	public void addFrontend(FrontendConnection c) {
-		frontends.put(c.getId(), c);
+		this.frontends.put(c.getId(), c);
+		this.frontendsLength.incrementAndGet();
 	}
 
 	public ConcurrentMap<Long, FrontendConnection> getFrontends() {
-		return frontends;
+		return this.frontends;
+	}
+	
+	public int getForntedsLength(){
+		return this.frontendsLength.get();
 	}
 
 	public void addBackend(BackendConnection c) {
-		backends.put(c.getId(), c);
+		this.backends.put(c.getId(), c);
 	}
 
 	public ConcurrentMap<Long, BackendConnection> getBackends() {
-		return backends;
+		return this.backends;
 	}
 
 	/**
@@ -148,13 +166,16 @@ public final class NIOProcessor {
 			// 删除空连接
 			if (c == null) {
 				it.remove();
+				this.frontendsLength.decrementAndGet();
 				continue;
 			}
 
 			// 清理已关闭连接，否则空闲检查。
 			if (c.isClosed()) {
-				c.cleanup();
+				// 此处在高并发情况下会存在并发问题, fixed #1072  极有可能解决了 #700
+				//c.cleanup();
 				it.remove();
+				this.frontendsLength.decrementAndGet();
 			} else {
 				// very important ,for some data maybe not sent
 				checkConSendQueue(c);
@@ -172,10 +193,8 @@ public final class NIOProcessor {
 
 	// 后端连接检查
 	private void backendCheck() {
-		long sqlTimeout = MycatServer.getInstance().getConfig().getSystem()
-				.getSqlExecuteTimeout() * 1000L;
-		Iterator<Entry<Long, BackendConnection>> it = backends.entrySet()
-				.iterator();
+		long sqlTimeout = MycatServer.getInstance().getConfig().getSystem().getSqlExecuteTimeout() * 1000L;
+		Iterator<Entry<Long, BackendConnection>> it = backends.entrySet().iterator();
 		while (it.hasNext()) {
 			BackendConnection c = it.next().getValue();
 
@@ -185,11 +204,8 @@ public final class NIOProcessor {
 				continue;
 			}
 			// SQL执行超时的连接关闭
-			if (c.isBorrowed()
-					&& c.getLastTime() < TimeUtil.currentTimeMillis()
-							- sqlTimeout) {
-				LOGGER.warn("found backend connection SQL timeout ,close it "
-						+ c);
+			if (c.isBorrowed() && c.getLastTime() < TimeUtil.currentTimeMillis() - sqlTimeout) {
+				LOGGER.warn("found backend connection SQL timeout ,close it " + c);
 				c.close("sql timeout");
 			}
 
@@ -212,6 +228,7 @@ public final class NIOProcessor {
 			this.backends.remove(con.getId());
 		} else {
 			this.frontends.remove(con.getId());
+			this.frontendsLength.decrementAndGet();
 		}
 
 	}

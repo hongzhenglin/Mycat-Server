@@ -23,10 +23,10 @@
  */
 package io.mycat.net.mysql;
 
+import java.nio.ByteBuffer;
+
 import io.mycat.net.BackendAIOConnection;
 import io.mycat.net.FrontendConnection;
-
-import java.nio.ByteBuffer;
 
 /**
  * @author mycat
@@ -181,6 +181,9 @@ public abstract class MySQLPacket {
      * Mycat heartbeat
      */
     public static final byte COM_HEARTBEAT = 64;
+    
+    //包头大小
+    public static final int packetHeaderSize = 4;
 
 
     public int packetLength;

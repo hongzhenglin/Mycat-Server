@@ -23,18 +23,11 @@
  */
 package io.mycat.server.handler;
 
-import io.mycat.parser.util.ParseUtil;
+import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseSelect;
-import io.mycat.server.response.SelectDatabase;
-import io.mycat.server.response.SelectIdentity;
-import io.mycat.server.response.SelectLastInsertId;
-import io.mycat.server.response.SelectUser;
-import io.mycat.server.response.SelectVersion;
-import io.mycat.server.response.SelectVersionComment;
-import io.mycat.server.response.SessionIncrement;
-import io.mycat.server.response.SessionIsolation;
+import io.mycat.server.response.*;
 
 /**
  * @author mycat
@@ -102,6 +95,12 @@ public final class SelectHandler {
 			offset = ServerParseSelect.skipAs(stmt, offset);
 			SelectIdentity.response(c, stmt, offset, orgName);
 			break;
+            case ServerParseSelect.SELECT_VAR_ALL:
+                SelectVariables.execute(c,stmt);
+                break;
+			case ServerParseSelect.SESSION_TX_READ_ONLY:
+				SelectTxReadOnly.response(c);
+				break;
 		default:
 			c.execute(stmt, ServerParse.SELECT);
 		}

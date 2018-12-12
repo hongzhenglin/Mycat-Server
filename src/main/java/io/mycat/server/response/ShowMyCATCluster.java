@@ -23,15 +23,22 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.MycatCluster;
-import io.mycat.MycatConfig;
-import io.mycat.MycatNode;
+import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Alarms;
 import io.mycat.config.Fields;
+import io.mycat.config.MycatCluster;
+import io.mycat.config.MycatConfig;
+import io.mycat.config.MycatNode;
 import io.mycat.config.model.MycatNodeConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.mysql.PacketUtil;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
@@ -40,19 +47,12 @@ import io.mycat.server.ServerConnection;
 import io.mycat.util.IntegerUtil;
 import io.mycat.util.StringUtil;
 
-import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-
 /**
  * @author mycat
  */
 public class ShowMyCATCluster {
 
-    private static final Logger alarm = Logger.getLogger("alarm");
+    private static final Logger alarm = LoggerFactory.getLogger("alarm");
 
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);

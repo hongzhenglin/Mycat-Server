@@ -23,7 +23,6 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.route.function.PartitionByPrefixPattern;
 import junit.framework.Assert;
 
 import org.junit.Test;
@@ -31,8 +30,7 @@ import org.junit.Test;
 public class PartitionByPrefixPatternTest {
 
 	@Test
-	public void test()
-	{
+	public void test()  {
 		/**
 		 * ASCII编码：
 		 * 48-57=0-9阿拉伯数字
@@ -47,7 +45,7 @@ public class PartitionByPrefixPatternTest {
 		autoPartition.init();
 		
 		String idVal="gf89f9a";
-		Assert.assertEquals(true, 0==autoPartition.calculate(idVal)); 
+		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
 		
 		idVal="8df99a";
 		Assert.assertEquals(true, 4==autoPartition.calculate(idVal)); 

@@ -24,6 +24,7 @@
 package io.mycat.util;
 
 import java.nio.charset.Charset;
+import java.util.Date;
 
 public class ByteUtil {
 
@@ -36,10 +37,12 @@ public class ByteUtil {
 	 * @return -1 means b1 < b2, or 0 means b1=b2 else return 1
 	 */
 	public static int compareNumberByte(byte[] b1, byte[] b2) {
-		if(b1 == null || b1.length == 0)
+		if(b1 == null || b1.length == 0) {
 			return -1;
-		else if(b2 == null || b2.length == 0)
+		}
+		else if(b2 == null || b2.length == 0) {
 			return 1;
+		}
 		boolean isNegetive = b1[0] == 45 || b2[0] == 45;
 		if (isNegetive == false && b1.length != b2.length) {
 			return b1.length - b2.length;
@@ -84,11 +87,13 @@ public class ByteUtil {
 		}
 		int len = b1.length > b2.length ? b1.length : b2.length;
 		for (int i = 0; i < len; i++) {
-			if (b1[i] != b2[i])
-				if (order == 1)
+			if (b1[i] != b2[i]) {
+				if (order == 1) {
 					return ((b1[i] & 0xff) - (b2[i] & 0xff)) > 0 ? b1 : b2;
-				else
+				} else {
 					return ((b1[i] & 0xff) - (b2[i] & 0xff)) > 0 ? b2 : b1;
+				}
+			}
 		}
 
 		return b1;
@@ -150,7 +155,8 @@ public class ByteUtil {
 	}
 
 	public static short getShort(byte[] bytes) {
-		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
+		return Short.parseShort(new String(bytes));
+//		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
 	}
 
 	public static char getChar(byte[] bytes) {
@@ -176,6 +182,10 @@ public class ByteUtil {
 	public static double getDouble(byte[] bytes) {
 		return Double.parseDouble(new String(bytes));
 	}
+	
+	public static float getFloat(byte[] bytes) {
+		return Float.parseFloat(new String(bytes));
+	}
 
 	public static String getString(byte[] bytes, String charsetName) {
 		return new String(bytes, Charset.forName(charsetName));
@@ -188,9 +198,151 @@ public class ByteUtil {
 	public static String getDate(byte[] bytes) {
 		return new String(bytes);
 	}
+	
+	public static String getTime(byte[] bytes) {
+		return new String(bytes);
+	}
 
 	public static String getTimestmap(byte[] bytes) {
 		return new String(bytes);
+	}
+	
+	public static byte[] getBytes(Date date, boolean isTime) {
+		if(isTime) {
+			return getBytesFromTime(date);
+		} else {
+			return getBytesFromDate(date);
+		}
+    }
+	
+	private static byte[] getBytesFromTime(Date date) {
+		int day = 0;
+		int hour = DateUtil.getHour(date);
+		int minute = DateUtil.getMinute(date);
+    	int second = DateUtil.getSecond(date);
+    	int microSecond = DateUtil.getMicroSecond(date);
+    	byte[] bytes = null;
+    	byte[] tmp = null;
+    	if(day == 0 && hour == 0 && minute == 0
+    			&& second == 0 && microSecond == 0) {
+    		bytes = new byte[1];
+    		bytes[0] = (byte) 0;
+    	} else if(microSecond == 0) {
+    		bytes = new byte[1 + 8];
+    		bytes[0] = (byte) 8;
+    		bytes[1] = (byte) 0; // is_negative (1) -- (1 if minus, 0 for plus)
+    		tmp = getBytes(day);
+    		bytes[2] = tmp[0];
+    		bytes[3] = tmp[1];
+    		bytes[4] = tmp[2];
+    		bytes[5] = tmp[3];
+    		bytes[6] = (byte) hour;
+    		bytes[7] = (byte) minute;
+    		bytes[8] = (byte) second;
+    	} else {
+    		bytes = new byte[1 + 12];
+    		bytes[0] = (byte) 12;
+    		bytes[1] = (byte) 0; // is_negative (1) -- (1 if minus, 0 for plus)
+    		tmp = getBytes(day);
+    		bytes[2] = tmp[0];
+    		bytes[3] = tmp[1];
+    		bytes[4] = tmp[2];
+    		bytes[5] = tmp[3];
+    		bytes[6] = (byte) hour;
+    		bytes[7] = (byte) minute;
+    		bytes[8] = (byte) second;
+    		tmp = getBytes(microSecond);
+    		bytes[9] = tmp[0];
+    		bytes[10] = tmp[1];
+    		bytes[11] = tmp[2];
+    		bytes[12] = tmp[3];
+    	}
+    	return bytes;
+	}
+	
+	private static byte[] getBytesFromDate(Date date) {
+		int year = DateUtil.getYear(date);
+    	int month = DateUtil.getMonth(date);
+    	int day = DateUtil.getDay(date);
+    	int hour = DateUtil.getHour(date);
+    	int minute = DateUtil.getMinute(date);
+    	int second = DateUtil.getSecond(date);
+    	int microSecond = DateUtil.getMicroSecond(date);
+    	byte[] bytes = null;
+    	byte[] tmp = null;
+    	if(year == 0 && month == 0 && day == 0 
+    			&& hour == 0 && minute == 0 && second == 0
+    			&& microSecond == 0) {
+    		bytes = new byte[1];
+    		bytes[0] = (byte) 0;
+    	} else if(hour == 0 && minute == 0 && second == 0
+    			&& microSecond == 0) {
+    		bytes = new byte[1 + 4];
+    		bytes[0] = (byte) 4;
+    		tmp = getBytes((short) year);
+    		bytes[1] = tmp[0];
+    		bytes[2] = tmp[1];
+    		bytes[3] = (byte) month;
+    		bytes[4] = (byte) day;
+    	} else if(microSecond == 0) {
+    		bytes = new byte[1 + 7];
+    		bytes[0] = (byte) 7;
+    		tmp = getBytes((short) year);
+    		bytes[1] = tmp[0];
+    		bytes[2] = tmp[1];
+    		bytes[3] = (byte) month;
+    		bytes[4] = (byte) day;
+    		bytes[5] = (byte) hour;
+    		bytes[6] = (byte) minute;
+    		bytes[7] = (byte) second;
+    	} else {
+    		bytes = new byte[1 + 11];
+    		bytes[0] = (byte) 11;
+    		tmp = getBytes((short) year);
+    		bytes[1] = tmp[0];
+    		bytes[2] = tmp[1];
+    		bytes[3] = (byte) month;
+    		bytes[4] = (byte) day;
+    		bytes[5] = (byte) hour;
+    		bytes[6] = (byte) minute;
+    		bytes[7] = (byte) second;
+    		tmp = getBytes(microSecond);
+    		bytes[8] = tmp[0];
+    		bytes[9] = tmp[1];
+    		bytes[10] = tmp[2];
+    		bytes[11] = tmp[3];
+    	}
+    	return bytes;
+	}
+	
+	// 支持 byte dump
+	//---------------------------------------------------------------------
+	public static String dump(byte[] data, int offset, int length) {
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append(" byte dump log ");
+		sb.append(System.lineSeparator());
+		sb.append(" offset ").append( offset );
+		sb.append(" length ").append( length );
+		sb.append(System.lineSeparator());
+		int lines = (length - 1) / 16 + 1;
+		for (int i = 0, pos = 0; i < lines; i++, pos += 16) {
+			sb.append(String.format("0x%04X ", i * 16));
+			for (int j = 0, pos1 = pos; j < 16; j++, pos1++) {
+				sb.append(pos1 < length ? String.format("%02X ", data[offset + pos1]) : "   ");
+			}
+			sb.append(" ");
+			for (int j = 0, pos1 = pos; j < 16; j++, pos1++) {
+				sb.append(pos1 < length ? print(data[offset + pos1]) : '.');
+			}
+			sb.append(System.lineSeparator());
+		}
+		sb.append(length).append(" bytes").append(System.lineSeparator());
+		return sb.toString();
+	}
+
+	public static char print(byte b) {
+		return (b < 32 || b > 127) ? '.' : (char) b;
 	}
 
 }

@@ -23,22 +23,22 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.MycatConfig;
+import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
+import io.mycat.config.MycatConfig;
 import io.mycat.config.model.UserConfig;
-import io.mycat.mysql.PacketUtil;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
-
-import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * @author mycat

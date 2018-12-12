@@ -23,10 +23,10 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.route.function.PartitionByPattern;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.mycat.route.function.PartitionByPattern;
 
 public class PartitionByPatternTest {
 

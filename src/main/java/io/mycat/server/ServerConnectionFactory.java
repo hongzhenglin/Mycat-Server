@@ -23,15 +23,16 @@
  */
 package io.mycat.server;
 
-import io.mycat.MycatPrivileges;
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+
 import io.mycat.MycatServer;
+import io.mycat.config.MycatPrivileges;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.factory.FrontendConnectionFactory;
 import io.mycat.server.handler.ServerLoadDataInfileHandler;
-
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
+import io.mycat.server.handler.ServerPrepareHandler;
 
 /**
  * @author mycat
@@ -46,7 +47,7 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         c.setPrivileges(MycatPrivileges.instance());
         c.setQueryHandler(new ServerQueryHandler(c));
         c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));
-        // c.setPrepareHandler(new ServerPrepareHandler(c));
+        c.setPrepareHandler(new ServerPrepareHandler(c));
         c.setTxIsolation(sys.getTxIsolation());
         c.setSession2(new NonBlockingSession(c));
         return c;

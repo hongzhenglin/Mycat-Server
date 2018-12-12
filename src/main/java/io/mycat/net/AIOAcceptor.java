@@ -23,9 +23,6 @@
  */
 package io.mycat.net;
 
-import io.mycat.MycatServer;
-import io.mycat.net.factory.FrontendConnectionFactory;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
@@ -36,14 +33,17 @@ import java.nio.channels.CompletionHandler;
 import java.nio.channels.NetworkChannel;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.MycatServer;
+import io.mycat.net.factory.FrontendConnectionFactory;
 
 /**
  * @author mycat
  */
 public final class AIOAcceptor implements SocketAcceptor,
 		CompletionHandler<AsynchronousSocketChannel, Long> {
-	private static final Logger LOGGER = Logger.getLogger(AIOAcceptor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AIOAcceptor.class);
 	private static final AcceptIdGenerator ID_GENERATOR = new AcceptIdGenerator();
 
 	private final int port;

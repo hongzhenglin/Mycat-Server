@@ -23,11 +23,12 @@
  */
 package io.mycat.net.mysql;
 
-import io.mycat.mysql.BufferUtil;
-import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
-
 import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.MySQLMessage;
+import io.mycat.buffer.BufferArray;
+import io.mycat.net.FrontendConnection;
 
 /**
  * From Server To Client, part of Result Set Packets. One for each column in the
@@ -158,10 +159,20 @@ public class FieldPacket extends MySQLPacket {
 		buffer.put((byte) (type & 0xff));
 		BufferUtil.writeUB2(buffer, flags);
 		buffer.put(decimals);
-		buffer.position(buffer.position() + FILLER.length);
+        buffer.put((byte)0x00);
+        buffer.put((byte)0x00);
+		//buffer.position(buffer.position() + FILLER.length);
 		if (definition != null) {
 			BufferUtil.writeWithLength(buffer, definition);
 		}
+	}
+
+	public  void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize + size);
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		writeBody(buffer);
 	}
 
 }

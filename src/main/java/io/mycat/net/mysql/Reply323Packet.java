@@ -23,13 +23,13 @@
  */
 package io.mycat.net.mysql;
 
-import io.mycat.mysql.BufferUtil;
-import io.mycat.mysql.StreamUtil;
-import io.mycat.net.BackendAIOConnection;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.StreamUtil;
+import io.mycat.net.BackendAIOConnection;
 
 /**
  * @author mycat

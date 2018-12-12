@@ -1,15 +1,10 @@
 package io.mycat.util.rehasher;
 
-import io.mycat.exception.RehashException;
-import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.function.PartitionByMod;
-import io.mycat.route.function.PartitionByMurmurHash;
-import io.mycat.util.CollectionUtil;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,6 +14,12 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.util.JdbcUtils;
+
+import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.route.function.PartitionByMod;
+import io.mycat.route.function.PartitionByMurmurHash;
+import io.mycat.util.CollectionUtil;
+import io.mycat.util.exception.RehashException;
 
 /**
  * 本工具依赖druid，Mycat已经包含druid，druid配置请查阅相关文档。相关参数请看RehashCmdArgs
@@ -38,7 +39,7 @@ public class RehashLauncher {
         public void run(){
         	int pageSize=500;
         	int page=0;
-        	List list=null;
+        	List<Map<String, Object>> list=null;
         	
         	int total=0;
         	int rehashed=0;
@@ -52,8 +53,8 @@ public class RehashLauncher {
                     pageSize);
                 while (!CollectionUtil.isEmpty(list)) {
         			for(int i=0,l=list.size();i<l;i++){
-        				Object sf=list.get(i);
-        				Integer hash=alg.calculate(sf.toString());
+        				Map<String, Object> sf=list.get(i);
+        				Integer hash=alg.calculate(sf.get(args.getShardingField()).toString());
         				String host=rehashHosts[hash];
         				total++;
         				if(host.equals(hostWithDatabase)){

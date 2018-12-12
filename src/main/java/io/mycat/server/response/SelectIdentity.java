@@ -23,17 +23,17 @@
  */
 package io.mycat.server.response;
 
+import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
-import io.mycat.mysql.PacketUtil;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.parser.util.ParseUtil;
+import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.LongUtil;
-
-import java.nio.ByteBuffer;
 
 /**
  * @author mycat

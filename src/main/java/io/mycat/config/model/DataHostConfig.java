@@ -23,9 +23,14 @@
  */
 package io.mycat.config.model;
 
-import io.mycat.backend.PhysicalDBPool;
-
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.google.common.collect.Iterables;
+import io.mycat.backend.datasource.PhysicalDBPool;
 
 /**
  * Datahost is a group of DB servers which is synchronized with each other
@@ -37,6 +42,9 @@ public class DataHostConfig {
 	public static final int NOT_SWITCH_DS = -1;
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
+	public static final int CLUSTER_STATUS_SWITCH_DS = 3;
+    private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
+    private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -47,14 +55,19 @@ public class DataHostConfig {
 	private final DBHostConfig[] writeHosts;
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
+    private boolean isShowSlaveSql=false;
+    private boolean isShowClusterSql=false;
 	private String connectionInitSql;
     private int slaveThreshold = -1;
 	private final int switchType;
 	private String filters="mergeStat";
 	private long logTime=300000;
+	private boolean tempReadHostAvailable = false;  //如果写服务挂掉, 临时读服务是否继续可用
+	private final Set<String> dataNodes; //包含的所有dataNode名字
+	private String slaveIDs;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
-			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold) {
+			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
 		super();
 		this.name = name;
 		this.dbType = dbType;
@@ -63,6 +76,12 @@ public class DataHostConfig {
 		this.readHosts = readHosts;
 		this.switchType=switchType;
 		this.slaveThreshold=slaveThreshold;
+		this.tempReadHostAvailable = tempReadHostAvailable;
+		this.dataNodes = new HashSet<>();
+	}
+
+	public boolean isTempReadHostAvailable() {
+		return this.tempReadHostAvailable;
 	}
 
 	public int getSlaveThreshold() {
@@ -103,7 +122,12 @@ public class DataHostConfig {
 		this.name = name;
 	}
 
-	public int getMaxCon() {
+    public boolean isShowSlaveSql()
+    {
+        return isShowSlaveSql;
+    }
+
+    public int getMaxCon() {
 		return maxCon;
 	}
 
@@ -117,6 +141,14 @@ public class DataHostConfig {
 
 	public void setMinCon(int minCon) {
 		this.minCon = minCon;
+	}
+
+	public String getSlaveIDs() {
+		return slaveIDs;
+	}
+
+	public void setSlaveIDs(String slaveIDs) {
+		this.slaveIDs = slaveIDs;
 	}
 
 	public int getBalance() {
@@ -149,7 +181,16 @@ public class DataHostConfig {
 
 	public void setHearbeatSQL(String heartbeatSQL) {
 		this.hearbeatSQL = heartbeatSQL;
-
+        Matcher matcher = pattern.matcher(heartbeatSQL);
+        if (matcher.find())
+        {
+            isShowSlaveSql=true;
+        }
+        Matcher matcher2 = patternCluster.matcher(heartbeatSQL);
+        if (matcher2.find())
+        {
+        	isShowClusterSql=true;
+        }
 	}
 
 	public String getFilters() {
@@ -164,9 +205,24 @@ public class DataHostConfig {
 		return logTime;
 	}
 
+	public boolean isShowClusterSql() {
+		return this.isShowClusterSql;
+	}
+
 	public void setLogTime(long logTime) {
 		this.logTime = logTime;
 	}
 
+	public void addDataNode(String name){
+		this.dataNodes.add(name);
+	}
 
+	public String getRandomDataNode() {
+		int index = (int) (Math.random() * dataNodes.size());
+		return Iterables.get(dataNodes,index);
+	}
+
+    public boolean containDataNode(String randomDn) {
+        return dataNodes.contains(randomDn);
+    }
 }

@@ -23,10 +23,12 @@
  */
 package io.mycat.route;
 
-import io.mycat.mpp.LoadData;
-import io.mycat.server.parser.ServerParse;
-
 import java.io.Serializable;
+import java.util.Map;
+import java.util.Set;
+
+import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.mpp.LoadData;
 
 /**
  * @author mycat
@@ -42,13 +44,23 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private final int sqlType;
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
-
+    private boolean callStatement = false; // 处理call关键字
 	private int limitStart;
 	private int limitSize;
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
-
+   private Procedure procedure;
 	private LoadData loadData;
+	private RouteResultset source;
+	
+	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
+	// 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
+	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
+	
+	private String subTableName; // 分表的表名
 
+	//迁移算法用     -2代表不是slot分片  ，-1代表扫描所有分片
+	private int slot=-2;
+	
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
 		limitStart=0;
@@ -60,6 +72,28 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		hasBlanceFlag = (statement != null)
 				&& statement.startsWith("/*balance*/");
 	}
+
+	public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+	public boolean isUpdateSql() {
+		int type=sqlType;
+		return ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type;
+	}
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
+	  private Map hintMap;
+
+    public Map getHintMap()
+    {
+        return hintMap;
+    }
+
+    public void setHintMap(Map hintMap)
+    {
+        this.hintMap = hintMap;
+    }
 
 	public void setStatement(String statement) {
 		this.statement = statement;
@@ -77,11 +111,52 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.statement = srcStatement;
 	}
 
+	/**
+	 * 这里的逻辑是为了优化，实现：非业务sql可以在负载均衡走slave的效果。因为业务sql一般是非自动提交，
+	 * 而非业务sql一般默认是自动提交，比如mysql client，还有SQLJob, heartbeat都可以使用
+	 * 了Leader-us优化的query函数，该函数实现为自动提交；
+	 * 
+	 * 在非自动提交的情况下(有事物)，除非使用了  balance 注解的情况下，才可以走slave.
+	 * 
+	 * 当然还有一个大前提，必须是 select 或者 show 语句(canRunInReadDB=true)
+	 * @param autocommit
+	 * @return
+	 */
 	public boolean canRunnINReadDB(boolean autocommit) {
-		return canRunInReadDB && autocommit && !hasBlanceFlag
-			|| canRunInReadDB && !autocommit && hasBlanceFlag;
+		return canRunInReadDB && ( autocommit || (!autocommit && hasBlanceFlag) );
+	}
+	
+//	public boolean canRunnINReadDB(boolean autocommit) {
+//		return canRunInReadDB && autocommit && !hasBlanceFlag
+//			|| canRunInReadDB && !autocommit && hasBlanceFlag;
+//	}
+  public Procedure getProcedure()
+    {
+        return procedure;
+    }
+
+	public int getSlot() {
+		return slot;
 	}
 
+	public void setSlot(int slot) {
+		this.slot = slot;
+	}
+
+	public void setProcedure(Procedure procedure)
+    {
+        this.procedure = procedure;
+    }
+
+    public boolean isCallStatement()
+    {
+        return callStatement;
+    }
+
+    public void setCallStatement(boolean callStatement)
+    {
+        this.callStatement = callStatement;
+    }
 	public String getName() {
 		return name;
 	}
@@ -141,12 +216,19 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
+		}
 		if (obj instanceof RouteResultsetNode) {
 			RouteResultsetNode rrn = (RouteResultsetNode) obj;
-			if (equals(name, rrn.getName())) {
-				return true;
+			if(subTableName!=null){
+				if (equals(name, rrn.getName()) && equals(subTableName, rrn.getSubTableName())) {
+					return true;
+				}
+			}else{
+				if (equals(name, rrn.getName())) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -167,9 +249,24 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		return str1.equals(str2);
 	}
 
+	public String getSubTableName() {
+		return this.subTableName;
+	}
+
+	public void setSubTableName(String subTableName) {
+		this.subTableName = subTableName;
+	}
+
 	public boolean isModifySQL() {
 		return !canRunInReadDB;
 	}
+	public boolean isDisctTable() {
+		if(subTableName!=null && !subTableName.equals("")){
+			return true;
+		};
+		return false;
+	}
+	
 
 	@Override
 	public int compareTo(RouteResultsetNode obj) {
@@ -182,6 +279,26 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		if(obj.name == null) {
 			return 1;
 		}
-		return this.name.compareTo(obj.name);
+		int c = this.name.compareTo(obj.name);
+		if(!this.isDisctTable()){
+			return c;
+		}else{
+			if(c==0){
+				return this.subTableName.compareTo(obj.subTableName);
+			}
+			return c;
+		}
+	}
+	
+	public boolean isHasBlanceFlag() {
+		return hasBlanceFlag;
+	}
+
+	public RouteResultset getSource() {
+		return source;
+	}
+
+	public void setSource(RouteResultset source) {
+		this.source = source;
 	}
 }
